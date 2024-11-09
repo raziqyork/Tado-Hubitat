@@ -590,7 +590,14 @@ private sendCommand(method,childDevice,args = []) {
         			path: "/api/v2/homes/" + state.homeId + "/zones/" + args[0] + "/overlay",
         			requestContentType: "application/json",
                     headers: ["Authorization": "Bearer " + state.authToken ]
-                   	]
+                   	],
+    'setPresence': [
+              uri: apiUrl(),
+              path: "/api/v2/homes/" + state.homeId + "/presenceLock",
+              requestContentType: "application/json",
+              headers: ["Authorization": "Bearer " + state.authToken ],
+              body: ["homePresence": args[1]]
+      ]
 	]
 
 	def request = methods.getAt(method)
@@ -625,7 +632,7 @@ private sendCommand(method,childDevice,args = []) {
             httpGet(request) { resp ->
                 parseUserResponse(resp,childDevice)
             }
-		  }else if (method == "temperature"){
+		      }else if (method == "temperature"){
             httpPut(request) { resp ->
                 parseputResponse(resp,childDevice)
             }
@@ -637,6 +644,10 @@ private sendCommand(method,childDevice,args = []) {
           }else if (method == "deleteEntry"){
             httpDelete(request) { resp ->
                 parsedeleteResponse(resp,childDevice)
+            }
+          }else if (method == "setPresence"){
+            httpPut(request) { resp ->
+                parseSetPresence(resp)
             }
         }else{
             httpGet(request)
@@ -1055,7 +1066,7 @@ private parseMobileDevicesResponse(resp) {
       def TadoUsers = []
       logDebug("Executing parseMobileDevicesResponse.successTrue")
       restUsers.each { TadoUser ->
-      	if (TadoUser.settings.geoTrackingEnabled == true)
+      	if (TadoUser.settings.geoTrackingEnabled == true || true /* hack so no need for tracking */)
         {
         	TadoUsers << ["${TadoUser.id}|${TadoUser.name}":"${TadoUser.name}"]
         }
@@ -1332,9 +1343,18 @@ private parseweatherResponse(resp,childDevice) {
     }
 }
 
+private parseSetPresence(resp) {
+  logDebug("Output status: "+resp.status)
+}
+
 def getidCommand(){
 	logDebug "Executing 'sendCommand.getidCommand'"
 	sendCommand("getid",null,[])
+}
+
+def setPresence(homeOrAway){
+	logDebug "Executing 'sendCommand.setPresence'"
+	sendCommand("setPresence",null,[homeOrAway])
 }
 
 def getTempUnitCommand(){
