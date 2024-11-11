@@ -723,19 +723,6 @@ private parseUserResponse(resp,childDevice) {
     }
 }
 
-private sendTadoModeEvent(tadoMode,childDevice) {
-    logDebug("Setting tadoMode: "+tadoMode)
-    childDevice?.sendEvent(name:"tadoMode",value:tadoMode)
-    if (tadoMode == "HOME"){
-        logDebug("Setting presence: present")
-        childDevice?.sendEvent(name: "presence", value: "present")
-    }
-    else if (tadoMode == "AWAY"){
-        logDebug("Setting presence: not present")
-        childDevice?.sendEvent(name: "presence", value: "not present")
-    }
-}
-
 private parseResponse(resp,childDevice) {
   def item = (childDevice.device.deviceNetworkId).tokenize('|')
   def deviceId = item[0]
@@ -775,7 +762,7 @@ private parseResponse(resp,childDevice) {
         	autoOperation = "MANUAL"
         }
         logDebug("Read tadoMode: " + autoOperation)
-        sendTadoModeEvent(autoOperation,childDevice)
+        childDevice?.sendEvent(name:"tadoMode",value:autoOperation)
         logDebug("Send thermostatMode Event Fired")
 
         def humidity
@@ -903,7 +890,7 @@ private parseResponse(resp,childDevice) {
         	autoOperation = "MANUAL"
         }
         logDebug("Read tadoMode: " + autoOperation)
-        sendTadoModeEvent(autoOperation,childDevice)
+        childDevice?.sendEvent(name: 'tadoMode', value: autoOperation)
 
 		if (resp.data.setting.power == "ON"){
 
@@ -1365,7 +1352,7 @@ private parseweatherResponse(resp,childDevice) {
 private parseSetPresence(resp,homeOrAway,childDevice) {
   logDebug("Output status: "+resp.status)
   if(resp.status == 204){
-      sendTadoModeEvent(homeOrAway,childDevice)
+      childDevice?.sendEvent(name: 'tadoMode', value: homeOrAway)
   }
 }
 
