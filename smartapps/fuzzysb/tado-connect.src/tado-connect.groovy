@@ -325,6 +325,7 @@ def buildRedirectUrl(endPoint) {
 
 def getDeviceList() {
   def TadoDevices = getZonesCommand()
+  TadoDevices << ["HOME_AWAY|0|Home/Away":"Home/Away"]
   logDebug "In getDeviceList"
   return TadoDevices.sort()
 
@@ -376,22 +377,27 @@ def initialize() {
             if (deviceType == "HOT_WATER")
             {
               logDebug("Creating Hot Water Device ${deviceName}")
-              createChildDevice("Tado Hot Water Control", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "${deviceName}", deviceName)
+              createChildDevice("Tado Hot Water Control", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "Tado ${deviceName}", "Tado ${deviceName}")
+            }
+            if (deviceType == "HOME_AWAY")
+            {
+              logDebug("Creating Home/Away Mode Device ${deviceName}")
+              createChildDevice("Tado Home/Away Mode", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "Tado ${deviceName}", "Tado ${deviceName}")
             }
             if (deviceType == "HEATING")
             {
               logDebug("Creating Heating Device ${deviceName}")
-              createChildDevice("Tado Heating Thermostat", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "${deviceName}", deviceName)
+              createChildDevice("Tado Heating Thermostat", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "Tado ${deviceName}", "Tado ${deviceName}")
             }
             if (deviceType == "AIR_CONDITIONING")
             {
               logDebug("Creating Air Conditioning Device ${deviceName}")
-              createChildDevice("Tado Cooling Thermostat", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "${deviceName}", deviceName)
+              createChildDevice("Tado Cooling Thermostat", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "Tado ${deviceName}", "Tado ${deviceName}")
             }
             if (deviceType == "Home")
             {
               logDebug("Creating Home Device ${deviceName}")
-              createChildDevice("Tado Home", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "${deviceName}", deviceName)
+              createChildDevice("Tado Home", deviceId + "|" + deviceType + "|" + state.accessToken + "|" + devicename, "Tado ${deviceName}", "Tado ${deviceName}")
             }
  			} catch (Exception e)
             {
@@ -596,7 +602,7 @@ private sendCommand(method,childDevice,args = []) {
               path: "/api/v2/homes/" + state.homeId + "/presenceLock",
               requestContentType: "application/json",
               headers: ["Authorization": "Bearer " + state.authToken ],
-              body: ["homePresence": args[1]]
+              body: ["homePresence": args[0]]
       ]
 	]
 
@@ -647,7 +653,7 @@ private sendCommand(method,childDevice,args = []) {
             }
           }else if (method == "setPresence"){
             httpPut(request) { resp ->
-                parseSetPresence(resp)
+                parseSetPresence(resp,args[0],childDevice)
             }
         }else{
             httpGet(request)
@@ -717,6 +723,19 @@ private parseUserResponse(resp,childDevice) {
     }
 }
 
+private sendTadoModeEvent(tadoMode,childDevice) {
+    logDebug("Setting tadoMode: "+tadoMode)
+    childDevice?.sendEvent(name:"tadoMode",value:tadoMode)
+    if (tadoMode == "HOME"){
+        logDebug("Setting presence: present")
+        childDevice?.sendEvent(name: "presence", value: "present")
+    }
+    else if (tadoMode == "AWAY"){
+        logDebug("Setting presence: not present")
+        childDevice?.sendEvent(name: "presence", value: "not present")
+    }
+}
+
 private parseResponse(resp,childDevice) {
   def item = (childDevice.device.deviceNetworkId).tokenize('|')
   def deviceId = item[0]
@@ -756,7 +775,7 @@ private parseResponse(resp,childDevice) {
         	autoOperation = "MANUAL"
         }
         logDebug("Read tadoMode: " + autoOperation)
-        childDevice?.sendEvent(name:"tadoMode",value:autoOperation)
+        sendTadoModeEvent(autoOperation,childDevice)
         logDebug("Send thermostatMode Event Fired")
 
         def humidity
@@ -884,7 +903,7 @@ private parseResponse(resp,childDevice) {
         	autoOperation = "MANUAL"
         }
         logDebug("Read tadoMode: " + autoOperation)
-        childDevice?.sendEvent(name: 'tadoMode', value: autoOperation)
+        sendTadoModeEvent(autoOperation,childDevice)
 
 		if (resp.data.setting.power == "ON"){
 
@@ -1066,7 +1085,7 @@ private parseMobileDevicesResponse(resp) {
       def TadoUsers = []
       logDebug("Executing parseMobileDevicesResponse.successTrue")
       restUsers.each { TadoUser ->
-      	if (TadoUser.settings.geoTrackingEnabled == true || true /* hack so no need for tracking */)
+      	if (TadoUser.settings.geoTrackingEnabled == true)
         {
         	TadoUsers << ["${TadoUser.id}|${TadoUser.name}":"${TadoUser.name}"]
         }
@@ -1343,8 +1362,11 @@ private parseweatherResponse(resp,childDevice) {
     }
 }
 
-private parseSetPresence(resp) {
+private parseSetPresence(resp,homeOrAway,childDevice) {
   logDebug("Output status: "+resp.status)
+  if(resp.status == 204){
+      sendTadoModeEvent(homeOrAway,childDevice)
+  }
 }
 
 def getidCommand(){
@@ -1353,7 +1375,7 @@ def getidCommand(){
 }
 
 def setPresence(homeOrAway){
-	logDebug "Executing 'sendCommand.setPresence'"
+	logDebug("Executing 'sendCommand.setPresence': "+homeOrAway)
 	sendCommand("setPresence",null,[homeOrAway])
 }
 

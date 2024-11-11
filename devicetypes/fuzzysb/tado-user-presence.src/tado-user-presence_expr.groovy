@@ -34,7 +34,7 @@ metadata {
 		capability "Sensor"
 		capability "Polling"
 		capability "Refresh"
-        
+        attribute "tadoMode", "string"
         command "arrived"
 		command "departed"
         
@@ -82,18 +82,24 @@ def getInitialDeviceinfo() {
 
 def refresh() {
 	log.debug "Executing 'refresh'"
-    parent.userStatusCommand(this)
+    //parent.userStatusCommand(this)
+	parent.statusCommand(this)
 }
 
 def arrived() {
 	log.trace "Executing 'arrived'"
-    def result = sendEvent(name: "presence", value: "present")
-    return result
+	parent.setPresence("HOME")
+	parent.statusCommand(this)
+    //def result = sendEvent(name: "presence", value: "present")
+    //return result
 }
 
 
 def departed() {
 	log.trace "Executing 'departed'"
-	def result = sendEvent(name: "presence", value: "not present")
-    return result
+	parent.setPresence("AWAY")
+	parent.statusCommand(this)
+	//def result = sendEvent(name: "presence", value: "not present")
+    //return result
 }
+
