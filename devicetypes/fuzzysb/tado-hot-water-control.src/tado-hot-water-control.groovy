@@ -40,6 +40,7 @@ metadata {
 		capability "Thermostat"
 		capability "Polling"
 		capability "Refresh"
+	capability "Switch"
     attribute "tadoMode", "string"
 		command "temperatureUp"
     command "temperatureDown"
